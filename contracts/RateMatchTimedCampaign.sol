@@ -1,8 +1,8 @@
-pragma solidity ^0.4.4;
+pragma solidity ^0.4.24;
 
-import './Campaign.sol';
+import './MatchTimedCampaign.sol';
 
-contract RateMatchTimedCampaign is Campaign {
+contract RateMatchTimedCampaign is MatchTimedCampaign {
 
     // region Constructor
     
@@ -12,14 +12,15 @@ contract RateMatchTimedCampaign is Campaign {
                 uint256 _matchRate, 
                 address _beneficiary,
                 address _campaignHub
+                ) MatchTimedCampaign(
+                    _title, 
+                    _openingTime, 
+                    _closingTime,
+                    _matchRate,
+                    _beneficiary, 
+                    _campaignHub
                 ) public {
-        require(_openingTime < _closingTime);
-        title = _title;
-        openingTime = now.add(_openingTime);
-        closingTime = now.add(_closingTime);
-        matchRate = _matchRate;
-        beneficiary = _beneficiary;
-        campaignHub = _campaignHub;
+        campaignType = 3;
     }
     
     // endregion Constructor
@@ -38,36 +39,6 @@ contract RateMatchTimedCampaign is Campaign {
         totalFund += msg.value + matchAmout;
         currentMatchVault -= matchAmout;
         emit DirectContributionReceived(address(this), _from, msg.value);
-    }
-    
-    /**
-    * This is the function called to put fund into the match vault.
-    */
-    function fundVault(address _from) payable external {
-        require(isOpen());
-        require(campaignHub == msg.sender);
-        totalMatchVault += msg.value;
-        currentMatchVault += msg.value;
-        contributorToVault[_from] += msg.value;
-        emit VaultContributionReceived(address(this), _from, msg.value);
-    }
-    
-    /**
-     * If the deadline is passed, allow contributors to withdraw their vault contributions.
-     */
-    function refund(address _from) external {
-        require(!isOpen());
-        require(campaignHub == msg.sender);
-        require(contributorToVault[_from] > 0);
-        
-        uint256 amount = (uint256) (contributorToVault[_from] / totalMatchVault) * currentMatchVault;
-        
-        // prevent re-entrancy
-        contributorToVault[_from] = 0;
-        
-        _from.transfer(amount);
-        
-        emit RefundSent(address(this), _from, amount);
     }
     
     // endregion Public Functions
